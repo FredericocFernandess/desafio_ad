@@ -1,0 +1,18 @@
+O SELECT apresentado está funcional, mas não adota as boas práticas recomendadas em SQL. O uso de vírgulas no FROM representa a sintaxe antiga de JOIN, que reduz a legibilidade, aumenta o risco de erros (como junções acidentais sem condição adequada) e pode afetar a performance em consultas mais complexas.
+A abordagem correta e alinhada aos padrões atuais é utilizar a sintaxe explícita com JOIN, que separa claramente as condições de junção das cláusulas de filtro, melhorando a clareza e a manutenção do código.
+
+Apresento abaixo a query revisada, alinhada ao modelo do banco de dados desenvolvido para o teste.
+
+SELECT 
+    cli.nm_cliente, 
+    ped.id_pedido, 
+    ped.vl_total
+FROM tb_pedido ped
+INNER JOIN tb_cliente cli
+  ON ped.id_cliente = cli.id_cliente
+INNER JOIN tb_status sta
+  ON sta.id_status = ped.id_status
+WHERE 1=1
+  AND sta.ds_status = 'Pago'
+  AND ped.vl_total > 1000
+ORDER BY ped.dt_pedido DESC;

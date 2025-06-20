@@ -1,0 +1,68 @@
+Parte 4 - Migrations
+Você está atuando em um time onde, por um período, scripts de banco foram aplicados manualmente em diferentes ambientes (homologação, pré-produção, treinamento, produção, etc). Isso resultou em cenários onde um script foi executado em um ambiente e não em outro, gerando falhas em futuras execuções de migrations automatizadas. 
+Atualmente, buscamos garantir que os scripts sejam reaplicáveis e consistentes entre ambientes, mesmo com esse histórico.
+
+Enunciado:
+Considere o seguinte script que foi encontrado em um repositório e aplicado em produção, mas não foi registrado como migration. Agora, a equipe deseja adicioná-lo ao fluxo automatizado para que, ao ser aplicado novamente, não cause falhas ou inconsistências nos ambientes onde já foi executado.
+
+INSERT INTO recurso_acao_processo (
+	id_recurso_acao_processo,
+	nome,
+	ativo,
+	data_inclusao,
+	id_usuario_inclusao
+) VALUES (
+	532,
+	'Vincular boleto',
+	1,
+	NAW(),
+	id_user_homologacao
+);
+
+Tarefa
+1.	Analise o script acima e liste todos os problemas e riscos potenciais, levando em consideração múltiplos ambientes e reaplicações.
+
+	Resposta:
+	•	Insert sem verificar a existência anterior. Pode gerar duplicidade de registro.
+	•	Uso de ID fixo (532)
+	•	Não existe garantia que esse ID está disponível em todos os ambientes.
+	•	Dependência de valor “id_user_homologacao” – Provavelmente é um identificador de usuário que faz sentido apenas no ambiente de homologação.
+	•	“NAW()” – Creio ser um erro de digitação, deve ser “NOW()”.
+
+2.	Reescreva o script seguindo as boas práticas para que: 
+	•	Seja seguro de ser reaplicado.
+	•	Evite conflitos com dados já existentes.
+	•	Garanta consistência entre os ambientes.
+	•	Utilize parâmetros dinâmicos quando necessário.
+
+--Altera o campo id_recurso_acao_processo para AUTO_INCREMENT
+ALTER TABLE recurso_acao_processo
+MODIFY COLUMN id_recurso_acao_processo INT NOT NULL AUTO_INCREMENT;
+
+-- Define parâmetros de entrada do insert
+SET @nome = 'Vincular boleto';
+-- Insere o registro apenas se não existir o recurso com o mesmo nome
+INSERT INTO recurso_acao_processo (
+    nome,
+    ativo,
+    data_inclusao,
+    id_usuario_inclusao
+)
+SELECT
+    @nome,
+    1,
+    CURRENT_TIMESTAMP,
+    CURRENT_USER() -- Retorna o usuário logado no momento do insert
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM recurso_acao_processo 
+    WHERE nome = @nome
+);
+
+3.	Explique por que suas alterações resolvem os problemas encontrados.
+
+As alterações propostas resolvem os problemas encontrados de forma prática e segura. A modificação do campo id_recurso_acao_processo para AUTO_INCREMENT assegura que o identificador dos registros seja gerado automaticamente pelo banco de dados, eliminando falhas relacionadas à inserção manual de valores duplicados ou inconsistentes.
+Além disso, o script desenvolvido realiza a inserção do registro apenas se ele ainda não existir na tabela, evitando erros de duplicidade e garantindo a integridade dos dados. Por ser reaplicável em qualquer ambiente, o script dispensa ajustes manuais e previne divergências entre ambientes (homologação, produção, etc.), reduzindo o risco de falhas em futuras execuções. A solução proposta também mantém a simplicidade, sem necessidade de procedures complexas, atendendo ao objetivo de resolver o problema de forma eficiente.
+
+
